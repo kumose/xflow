@@ -11,178 +11,168 @@
 */
 
 namespace xf {
-
-// ----------------------------------------------------------------------------
-// Semaphore
-// ----------------------------------------------------------------------------
-
-/**
-@class Semaphore
-
-@brief class to create a semophore object for building a concurrency constraint
-
-A semaphore creates a constraint that limits the maximum concurrency,
-i.e., the number of workers, in a set of tasks.
-You can let a task acquire/release one or multiple semaphores before/after
-executing its work.
-A task can acquire and release a semaphore,
-or just acquire or just release it.
-A xf::Semaphore object starts with an initial count.
-As long as that count is above 0, tasks can acquire the semaphore and do
-their work.
-If the count is 0 or less, a task trying to acquire the semaphore will not run
-but goes to a waiting list of that semaphore.
-When the semaphore is released by another task,
-it reschedules all tasks on that waiting list.
-
-@code{.cpp}
-xf::Executor executor(8);   // create an executor of 8 workers
-xf::Taskflow taskflow;
-
-xf::Semaphore semaphore(1); // create a semaphore with initial count 1
-
-SmallVector<xf::Task> tasks {
-  taskflow.emplace([](){ std::cout << "A" << std::endl; }),
-  taskflow.emplace([](){ std::cout << "B" << std::endl; }),
-  taskflow.emplace([](){ std::cout << "C" << std::endl; }),
-  taskflow.emplace([](){ std::cout << "D" << std::endl; }),
-  taskflow.emplace([](){ std::cout << "E" << std::endl; })
-};
-
-for(auto & task : tasks) {  // each task acquires and release the semaphore
-  task.acquire(semaphore);
-  task.release(semaphore);
-}
-
-executor.run(taskflow).wait();
-@endcode
-
-The above example creates five tasks with no dependencies between them.
-Under normal circumstances, the five tasks would be executed concurrently.
-However, this example has a semaphore with initial count 1,
-and all tasks need to acquire that semaphore before running and release that
-semaphore after they are done.
-This arrangement limits the number of concurrently running tasks to only one.
-
-*/
-class Semaphore {
-
-  friend class Node;
-  friend class Executor;
-
-  public:
+    // ----------------------------------------------------------------------------
+    // Semaphore
+    // ----------------------------------------------------------------------------
 
     /**
-    @brief constructs a default semaphore
+    @class Semaphore
 
-    A default semaphore has the value of zero. Users can call xf::Semaphore::reset
-    to reassign a new value to the semaphore.
-    */
-    Semaphore() = default;
-
-    /**
-    @brief constructs a semaphore with the given value (i.e., counter)
+    @brief class to create a semophore object for building a concurrency constraint
 
     A semaphore creates a constraint that limits the maximum concurrency,
     i.e., the number of workers, in a set of tasks.
+    You can let a task acquire/release one or multiple semaphores before/after
+    executing its work.
+    A task can acquire and release a semaphore,
+    or just acquire or just release it.
+    A xf::Semaphore object starts with an initial count.
+    As long as that count is above 0, tasks can acquire the semaphore and do
+    their work.
+    If the count is 0 or less, a task trying to acquire the semaphore will not run
+    but goes to a waiting list of that semaphore.
+    When the semaphore is released by another task,
+    it reschedules all tasks on that waiting list.
 
     @code{.cpp}
-    xf::Semaphore semaphore(4);  // concurrency constraint of 4 workers
+    xf::Executor executor(8);   // create an executor of 8 workers
+    xf::Taskflow taskflow;
+
+    xf::Semaphore semaphore(1); // create a semaphore with initial count 1
+
+    SmallVector<xf::Task> tasks {
+      taskflow.emplace([](){ std::cout << "A" << std::endl; }),
+      taskflow.emplace([](){ std::cout << "B" << std::endl; }),
+      taskflow.emplace([](){ std::cout << "C" << std::endl; }),
+      taskflow.emplace([](){ std::cout << "D" << std::endl; }),
+      taskflow.emplace([](){ std::cout << "E" << std::endl; })
+    };
+
+    for(auto & task : tasks) {  // each task acquires and release the semaphore
+      task.acquire(semaphore);
+      task.release(semaphore);
+    }
+
+    executor.run(taskflow).wait();
     @endcode
+
+    The above example creates five tasks with no dependencies between them.
+    Under normal circumstances, the five tasks would be executed concurrently.
+    However, this example has a semaphore with initial count 1,
+    and all tasks need to acquire that semaphore before running and release that
+    semaphore after they are done.
+    This arrangement limits the number of concurrently running tasks to only one.
+
     */
-    explicit Semaphore(size_t max_value);
+    class Semaphore {
+        friend class Node;
+        friend class Executor;
 
-    /**
-    @brief queries the current counter value
-    */
-    size_t value() const;
+    public:
+        /**
+        @brief constructs a default semaphore
 
-    /**
-    @brief queries the maximum allowable value of this semaphore
-    */
-    size_t max_value() const;
+        A default semaphore has the value of zero. Users can call xf::Semaphore::reset
+        to reassign a new value to the semaphore.
+        */
+        Semaphore() = default;
 
-    /**
-    @brief resets the semaphores to a clean state
-    */
-    void reset();
-    
-    /**
-    @brief resets the semaphores to a clean state with the given new maximum value
-    */
-    void reset(size_t new_max_value);
+        /**
+        @brief constructs a semaphore with the given value (i.e., counter)
 
-  private:
+        A semaphore creates a constraint that limits the maximum concurrency,
+        i.e., the number of workers, in a set of tasks.
 
-    mutable std::mutex _mtx;
-    
-    size_t _max_value{0};
-    size_t _cur_value{0};
+        @code{.cpp}
+        xf::Semaphore semaphore(4);  // concurrency constraint of 4 workers
+        @endcode
+        */
+        explicit Semaphore(size_t max_value);
 
-    SmallVector<Node*> _waiters;
+        /**
+        @brief queries the current counter value
+        */
+        size_t value() const;
 
-    bool _try_acquire_or_wait(Node*);
+        /**
+        @brief queries the maximum allowable value of this semaphore
+        */
+        size_t max_value() const;
 
-    void _release(SmallVector<Node*>&);
-};
+        /**
+        @brief resets the semaphores to a clean state
+        */
+        void reset();
 
-inline Semaphore::Semaphore(size_t max_value) :
-  _max_value(max_value),
-  _cur_value(max_value) {
-}
+        /**
+        @brief resets the semaphores to a clean state with the given new maximum value
+        */
+        void reset(size_t new_max_value);
 
-inline bool Semaphore::_try_acquire_or_wait(Node* me) {
-  std::lock_guard<std::mutex> lock(_mtx);
-  if(_cur_value > 0) {
-    --_cur_value;
-    return true;
-  }
-  else {
-    _waiters.push_back(me);
-    return false;
-  }
-}
+    private:
+        mutable std::mutex _mtx;
 
-inline void Semaphore::_release(SmallVector<Node*>& dst) {
+        size_t _max_value{0};
+        size_t _cur_value{0};
 
-  std::lock_guard<std::mutex> lock(_mtx);
+        SmallVector<Node *> _waiters;
 
-  if(_cur_value >= _max_value) {
-    TF_THROW("can't release the semaphore more than its maximum value: ", _max_value);
-  }
+        bool _try_acquire_or_wait(Node *);
 
-  ++_cur_value;
-  
-  if(dst.empty()) {
-    dst.swap(_waiters);
-  }
-  else {
-    dst.reserve(dst.size() + _waiters.size());
-    dst.insert(dst.end(), _waiters.begin(), _waiters.end());
-    _waiters.clear();
-  }
-}
+        void _release(SmallVector<Node *> &);
+    };
 
-inline size_t Semaphore::max_value() const {
-  return _max_value; 
-}
+    inline Semaphore::Semaphore(size_t max_value) : _max_value(max_value),
+                                                    _cur_value(max_value) {
+    }
 
-inline size_t Semaphore::value() const {
-  std::lock_guard<std::mutex> lock(_mtx);
-  return _cur_value;
-}
+    inline bool Semaphore::_try_acquire_or_wait(Node *me) {
+        std::lock_guard<std::mutex> lock(_mtx);
+        if (_cur_value > 0) {
+            --_cur_value;
+            return true;
+        } else {
+            _waiters.push_back(me);
+            return false;
+        }
+    }
 
-inline void Semaphore::reset() {
-  std::lock_guard<std::mutex> lock(_mtx);
-  _cur_value = _max_value;
-  _waiters.clear();
-}
+    inline void Semaphore::_release(SmallVector<Node *> &dst) {
+        std::lock_guard<std::mutex> lock(_mtx);
 
-inline void Semaphore::reset(size_t new_max_value) {
-  std::lock_guard<std::mutex> lock(_mtx);
-  _cur_value = (_max_value = new_max_value);
-  _waiters.clear();
-}
+        if (_cur_value >= _max_value) {
+            TF_THROW("can't release the semaphore more than its maximum value: ", _max_value);
+        }
 
-}  // end of namespace xf. ---------------------------------------------------
+        ++_cur_value;
 
+        if (dst.empty()) {
+            dst.swap(_waiters);
+        } else {
+            dst.reserve(dst.size() + _waiters.size());
+            dst.insert(dst.end(), _waiters.begin(), _waiters.end());
+            _waiters.clear();
+        }
+    }
+
+    inline size_t Semaphore::max_value() const {
+        return _max_value;
+    }
+
+    inline size_t Semaphore::value() const {
+        std::lock_guard<std::mutex> lock(_mtx);
+        return _cur_value;
+    }
+
+    inline void Semaphore::reset() {
+        std::lock_guard<std::mutex> lock(_mtx);
+        _cur_value = _max_value;
+        _waiters.clear();
+    }
+
+    inline void Semaphore::reset(size_t new_max_value) {
+        std::lock_guard<std::mutex> lock(_mtx);
+        _cur_value = (_max_value = new_max_value);
+        _waiters.clear();
+    }
+} // end of namespace xf. ---------------------------------------------------

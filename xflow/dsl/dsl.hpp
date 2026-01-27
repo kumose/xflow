@@ -8,6 +8,4 @@
 #include <xflow/dsl/task_dsl.hpp>
 
 namespace xf {
-
-
-}  // end of namespace xf -----------------------------------------------------
+} // end of namespace xf -----------------------------------------------------

@@ -14,19 +14,19 @@
 // ============================================================================
 
 #if defined(_MSC_VER)
-  #define TF_FORCE_INLINE __forceinline
+#define TF_FORCE_INLINE __forceinline
 #elif defined(__GNUC__) && __GNUC__ > 3
-  #define TF_FORCE_INLINE __attribute__((__always_inline__)) inline
+#define TF_FORCE_INLINE __attribute__((__always_inline__)) inline
 #else
-  #define TF_FORCE_INLINE inline
+#define TF_FORCE_INLINE inline
 #endif
 
 #if defined(_MSC_VER)
-  #define TF_NO_INLINE __declspec(noinline)
+#define TF_NO_INLINE __declspec(noinline)
 #elif defined(__GNUC__) && __GNUC__ > 3
-  #define TF_NO_INLINE __attribute__((__noinline__))
+#define TF_NO_INLINE __attribute__((__noinline__))
 #else
-  #define TF_NO_INLINE
+#define TF_NO_INLINE
 #endif
 
 // ============================================================================
@@ -34,25 +34,14 @@
 // ============================================================================
 
 #if defined(__GNUC__)
-  #define TF_LIKELY(x) (__builtin_expect((x), 1))
-  #define TF_UNLIKELY(x) (__builtin_expect((x), 0))
+#define TF_LIKELY(x) (__builtin_expect((x), 1))
+#define TF_UNLIKELY(x) (__builtin_expect((x), 0))
 #else
-  #define TF_LIKELY(x) (x)
-  #define TF_UNLIKELY(x) (x)
+#define TF_LIKELY(x) (x)
+#define TF_UNLIKELY(x) (x)
 #endif
-
 
 
 // ----------------------------------------------------------------------------    
 
 #define TF_FWD(T, x) std::forward<T>(x)
-
-
-
-
-
-
-
-
-
-
