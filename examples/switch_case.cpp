@@ -3,24 +3,35 @@
 #include <xflow/taskflow.hpp>
 
 int main() {
+    xf::Executor executor;
+    xf::Taskflow taskflow;
 
-  xf::Executor executor;
-  xf::Taskflow taskflow;
+    auto [source, swcond, case1, case2, case3, target] = taskflow.emplace(
+        []() { std::cout << "source\n"; },
+        []() {
+            std::cout << "switch\n";
+            return rand() % 3;
+        },
+        []() {
+            std::cout << "case 1\n";
+            return 0;
+        },
+        []() {
+            std::cout << "case 2\n";
+            return 0;
+        },
+        []() {
+            std::cout << "case 3\n";
+            return 0;
+        },
+        []() { std::cout << "target\n"; }
+    );
 
-  auto [source, swcond, case1, case2, case3, target] = taskflow.emplace(
-    [](){ std::cout << "source\n"; },
-    [](){ std::cout << "switch\n"; return rand()%3; },
-    [](){ std::cout << "case 1\n"; return 0; },
-    [](){ std::cout << "case 2\n"; return 0; },
-    [](){ std::cout << "case 3\n"; return 0; },
-    [](){ std::cout << "target\n"; }
-  );
+    source.precede(swcond);
+    swcond.precede(case1, case2, case3);
+    target.succeed(case1, case2, case3);
 
-  source.precede(swcond);
-  swcond.precede(case1, case2, case3);
-  target.succeed(case1, case2, case3);
+    executor.run(taskflow).wait();
 
-  executor.run(taskflow).wait();
-
-  return 0;
+    return 0;
 }
